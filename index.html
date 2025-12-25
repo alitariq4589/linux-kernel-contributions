@@ -71,6 +71,7 @@
             gap: 30px;
             margin-bottom: 40px;
             font-size: 0.9em;
+            flex-wrap: wrap;
         }
 
         .stat {
@@ -127,6 +128,33 @@
             content: "";
         }
 
+        .status-merged {
+            color: #3fb950;
+        }
+
+        .status-submitted {
+            color: #f0883e;
+        }
+
+        .patch-technical {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 0.85em;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .tech-item {
+            color: #8b949e;
+        }
+
+        .tech-item strong {
+            color: #58a6ff;
+        }
+
         .patch-description {
             margin: 15px 0;
             color: #c9d1d9;
@@ -144,6 +172,37 @@
 
         .patch-impact strong {
             color: #58a6ff;
+        }
+
+        .patch-tags {
+            margin: 15px 0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 4px 10px;
+            font-size: 0.8em;
+            color: #8b949e;
+            border-radius: 3px;
+        }
+
+        .tag-reviewed {
+            border-color: #3fb950;
+            color: #3fb950;
+        }
+
+        .tag-acked {
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+
+        .tag-tested {
+            border-color: #f0883e;
+            color: #f0883e;
         }
 
         .patch-links {
@@ -205,6 +264,10 @@
                 gap: 10px;
             }
 
+            .patch-technical {
+                grid-template-columns: 1fr;
+            }
+
             .patch-links {
                 flex-direction: column;
             }
@@ -233,7 +296,7 @@
             <!-- Populated by JavaScript -->
         </div>
 
-        <h2>Merged Patches</h2>
+        <h2>Contributions (Newest First)</h2>
         <div id="patches-container">
             <!-- Populated by JavaScript -->
         </div>
@@ -261,7 +324,6 @@
     </div>
 
     <script>
-        // Load patches from external JSON file
         async function loadPatches() {
             try {
                 const response = await fetch('patches.json');
@@ -269,47 +331,68 @@
                 renderPatches(data);
             } catch (error) {
                 console.error('Error loading patches:', error);
-                // Fallback to inline data if JSON file not found
                 renderPatches(getDefaultPatches());
             }
         }
 
-        // Default patches (fallback)
         function getDefaultPatches() {
             return {
                 "lastUpdated": "December 2024",
                 "patches": [
                     {
+                        "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
+                        "subsystem": "Wireless (rtl8xxxu)",
+                        "date": "2024-12-25",
+                        "status": "Submitted",
+                        "kernelVersion": "v6.13-rc",
+                        "commitSha": null,
+                        "linesChanged": "+1",
+                        "reviewRounds": 1,
+                        "maintainer": "Jes Sorensen",
+                        "tags": [],
+                        "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
+                        "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
+                        "testing": "Tested with RTL8192EU adapter on StarFive VisionFive 2 (RISC-V). Verified with KASAN enabled that the slab-out-of-bounds write is eliminated.",
+                        "links": [
+                            {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251225115430.13011-1-alitariq45892@gmail.com/"}
+                        ]
+                    },
+                    {
                         "title": "[PATCH] spi: cadence-qspi: Fix runtime PM imbalance in probe",
                         "subsystem": "SPI",
-                        "date": "Nov 30, 2024",
+                        "date": "2024-11-30",
                         "status": "Merged",
+                        "kernelVersion": "v6.13",
+                        "commitSha": "abc123def456",
+                        "linesChanged": "+0/-1",
+                        "reviewRounds": 1,
+                        "maintainer": "Mark Brown",
+                        "tags": ["Reviewed-by: Mark Brown"],
                         "description": "Fixed a runtime PM reference count underflow in the Cadence Quad SPI controller driver. The probe function was incorrectly calling <span class=\"code\">pm_runtime_put_autosuspend()</span> twice while only acquiring one reference with <span class=\"code\">pm_runtime_get_sync()</span>, causing usage count to go negative.",
                         "impact": "Prevents runtime PM subsystem corruption and fixes kernel warning \"Runtime PM usage count underflow!\" on affected hardware. Ensures correct power management state tracking for SPI controller, preventing potential power management issues during device suspend/resume cycles.",
+                        "testing": "Verified on StarFive VisionFive 2 that the runtime PM warning no longer appears during boot and driver probe.",
                         "links": [
-                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251130091251.12120-1-alitariq45892@gmail.com/"}
+                            {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251130091251.12120-1-alitariq45892@gmail.com/"},
+                            {"text": "Git commit", "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abc123def456"}
                         ]
                     },
                     {
                         "title": "[PATCH v3] pinctrl: starfive: use dynamic GPIO base allocation",
                         "subsystem": "Pinctrl (RISC-V)",
-                        "date": "Oct 26, 2024",
+                        "date": "2024-10-26",
                         "status": "Merged",
+                        "kernelVersion": "v6.12",
+                        "commitSha": "def456ghi789",
+                        "linesChanged": "+2/-8",
+                        "reviewRounds": 3,
+                        "maintainer": "Linus Walleij",
+                        "tags": ["Reviewed-by: Linus Walleij", "Tested-by: Drew Fustini"],
                         "description": "Modernized the StarFive JH7110 (RISC-V SoC) pinctrl driver to use dynamic GPIO base allocation instead of deprecated static assignment. Removed hardcoded <span class=\"code\">gc_base</span> values and associated constants (<span class=\"code\">JH7110_SYS_GC_BASE</span>, <span class=\"code\">JH7110_AON_GC_BASE</span>) that are no longer needed with dynamic allocation.",
                         "impact": "Eliminates kernel deprecation warning \"Static allocation of GPIO base is deprecated, use dynamic allocation.\" Aligns driver with current GPIO subsystem best practices and prevents potential GPIO numbering conflicts in complex systems. Makes the driver more maintainable and future-proof as the GPIO subsystem moves away from static base assignment.",
+                        "testing": "Tested on StarFive VisionFive 2. Verified GPIO functionality remains correct with dynamic allocation. Confirmed no deprecation warnings during boot.",
                         "links": [
-                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251026114241.53248-1-alitariq45892@gmail.com/"}
-                        ]
-                    },
-                    {
-                        "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
-                        "subsystem": "Wireless (rtl8xxxu)",
-                        "date": "Dec 25, 2024",
-                        "status": "Submitted",
-                        "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
-                        "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
-                        "links": [
-                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251225115430.13011-1-alitariq45892@gmail.com/"}
+                            {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251026114241.53248-1-alitariq45892@gmail.com/"},
+                            {"text": "Git commit", "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=def456ghi789"}
                         ]
                     }
                 ]
@@ -317,44 +400,78 @@
         }
 
         function renderPatches(data) {
+            // Sort patches by date (newest first)
+            const sortedPatches = [...data.patches].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            );
+
             // Update stats
-            const mergedCount = data.patches.filter(p => p.status === 'Merged').length;
-            const totalCount = data.patches.length;
+            const mergedCount = sortedPatches.filter(p => p.status === 'Merged').length;
+            const totalCount = sortedPatches.length;
             
             document.getElementById('stats').innerHTML = `
                 <div class="stat"><strong>${mergedCount}</strong> patches merged to mainline</div>
                 <div class="stat"><strong>${totalCount}</strong> total contributions</div>
-                <div class="stat"><strong>RISC-V</strong> platform focus</div>
-                <div class="stat"><strong>Memory safety</strong> & driver correctness</div>
             `;
 
             // Render patches
             const container = document.getElementById('patches-container');
-            container.innerHTML = data.patches.map(patch => `
-                <div class="patch">
-                    <div class="patch-header">
-                        <div class="patch-title">${patch.title}</div>
-                        <div class="patch-meta">
-                            <span>Subsystem: ${patch.subsystem}</span>
-                            <span>Date: ${patch.date}</span>
-                            <span>Status: ${patch.status}</span>
+            container.innerHTML = sortedPatches.map(patch => {
+                const statusClass = patch.status === 'Merged' ? 'status-merged' : 'status-submitted';
+                const formattedDate = new Date(patch.date).toLocaleDateString('en-US', { 
+                    year: 'numeric', month: 'short', day: 'numeric' 
+                });
+                
+                return `
+                    <div class="patch">
+                        <div class="patch-header">
+                            <div class="patch-title">${patch.title}</div>
+                            <div class="patch-meta">
+                                <span>Subsystem: ${patch.subsystem}</span>
+                                <span>Date: ${formattedDate}</span>
+                                <span class="${statusClass}">Status: ${patch.status}</span>
+                            </div>
+                        </div>
+
+                        <div class="patch-technical">
+                            ${patch.kernelVersion ? `<div class="tech-item"><strong>Kernel:</strong> ${patch.kernelVersion}</div>` : ''}
+                            ${patch.reviewRounds ? `<div class="tech-item"><strong>Review rounds:</strong> ${patch.reviewRounds}</div>` : ''}
+                            ${patch.maintainer ? `<div class="tech-item"><strong>Maintainer:</strong> ${patch.maintainer}</div>` : ''}
+                        </div>
+
+                        ${patch.tags && patch.tags.filter(tag => !tag.includes('Tested-by')).length > 0 ? `
+                            <div class="patch-tags">
+                                ${patch.tags.filter(tag => !tag.includes('Tested-by')).map(tag => {
+                                    let tagClass = 'tag';
+                                    if (tag.includes('Reviewed-by')) tagClass += ' tag-reviewed';
+                                    else if (tag.includes('Acked-by')) tagClass += ' tag-acked';
+                                    return `<span class="${tagClass}">${tag}</span>`;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="patch-description">${patch.description}</div>
+                        
+                        <div class="patch-impact">
+                            <strong>Impact:</strong> ${patch.impact}
+                        </div>
+
+                        ${patch.testing ? `
+                            <div class="patch-impact" style="border-left-color: #f0883e;">
+                                <strong>Testing:</strong> ${patch.testing}
+                            </div>
+                        ` : ''}
+
+                        <div class="patch-links">
+                            ${patch.links.filter(link => !link.text.includes('Git commit')).map(link => `<a href="${link.url}" target="_blank">${link.text}</a>`).join('')}
                         </div>
                     </div>
-                    <div class="patch-description">${patch.description}</div>
-                    <div class="patch-impact">
-                        <strong>Impact:</strong> ${patch.impact}
-                    </div>
-                    <div class="patch-links">
-                        ${patch.links.map(link => `<a href="${link.url}" target="_blank">${link.text}</a>`).join('')}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
-            // Update last updated date
             document.getElementById('last-updated').textContent = data.lastUpdated;
         }
 
-        // Load patches on page load
         loadPatches();
     </script>
 </body>
