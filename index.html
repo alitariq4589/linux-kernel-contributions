@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ali Tariq - Linux Kernel Contributions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'DejaVu Sans Mono', monospace;
+            line-height: 1.6;
+            color: #c9d1d9;
+            background-color: #0d1117;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #58a6ff;
+            font-size: 1.8em;
+            font-weight: normal;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            font-size: 0.95em;
+        }
+
+        .meta-line {
+            color: #8b949e;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .meta-line a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .meta-line a:hover {
+            text-decoration: underline;
+        }
+
+        .intro {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-left: 3px solid #58a6ff;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+
+        .stat {
+            color: #8b949e;
+        }
+
+        .stat strong {
+            color: #58a6ff;
+            font-size: 1.3em;
+        }
+
+        h2 {
+            color: #58a6ff;
+            font-size: 1.4em;
+            font-weight: normal;
+            margin: 40px 0 20px 0;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .patch {
+            background: #161b22;
+            border: 1px solid #30363d;
+            padding: 20px;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+        }
+
+        .patch-header {
+            margin-bottom: 15px;
+        }
+
+        .patch-title {
+            color: #c9d1d9;
+            font-size: 1.15em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .patch-meta {
+            color: #8b949e;
+            font-size: 0.85em;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .patch-meta span::before {
+            content: "• ";
+            color: #58a6ff;
+        }
+
+        .patch-meta span:first-child::before {
+            content: "";
+        }
+
+        .patch-description {
+            margin: 15px 0;
+            color: #c9d1d9;
+            line-height: 1.7;
+        }
+
+        .patch-impact {
+            background: #0d1117;
+            border-left: 2px solid #58a6ff;
+            padding: 12px;
+            margin: 15px 0;
+            color: #8b949e;
+            font-size: 0.9em;
+        }
+
+        .patch-impact strong {
+            color: #58a6ff;
+        }
+
+        .patch-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .patch-links a {
+            color: #58a6ff;
+            text-decoration: none;
+            font-size: 0.9em;
+            padding: 5px 0;
+        }
+
+        .patch-links a:hover {
+            text-decoration: underline;
+        }
+
+        .patch-links a::before {
+            content: "→ ";
+        }
+
+        .code {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 2px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #79c0ff;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+            color: #8b949e;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        footer a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .patch-links {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Linux Kernel Contributions</h1>
+            <div class="subtitle">Ali Tariq</div>
+            <div class="meta-line">
+                Email: alitariq45892@gmail.com | 
+                <a href="https://github.com/alitariq4589" target="_blank">GitHub</a> | 
+                <a href="https://www.linkedin.com/in/ali-tariq-23bb271b7/" target="_blank">LinkedIn</a>
+            </div>
+        </header>
+
+        <div class="intro">
+            Mainline Linux kernel contributor focused on RISC-V architecture support, device drivers, and system correctness. 
+            Work primarily involves fixing memory safety issues, runtime PM correctness, and modernizing drivers to follow current kernel guidelines.
+            All patches tested on RISC-V hardware (StarFive VisionFive 2).
+        </div>
+
+        <div class="stats" id="stats">
+            <!-- Populated by JavaScript -->
+        </div>
+
+        <h2>Merged Patches</h2>
+        <div id="patches-container">
+            <!-- Populated by JavaScript -->
+        </div>
+
+        <h2>Technical Focus Areas</h2>
+        
+        <div class="intro" style="margin-top: 20px;">
+            <strong style="color: #58a6ff;">Memory Safety:</strong> Using KASAN and other kernel debugging tools to identify and fix memory corruption issues.<br><br>
+            <strong style="color: #58a6ff;">Driver Modernization:</strong> Updating drivers to follow current kernel subsystem guidelines and best practices.<br><br>
+            <strong style="color: #58a6ff;">RISC-V Platform:</strong> Testing and fixing issues on RISC-V hardware, particularly StarFive JH7110 SoC.<br><br>
+            <strong style="color: #58a6ff;">Runtime PM Correctness:</strong> Ensuring proper power management reference counting and state transitions.
+        </div>
+
+        <footer>
+            <p>
+                All patches tested on StarFive VisionFive 2 v1.2A (RISC-V) board<br>
+                Last updated: <span id="last-updated"></span>
+            </p>
+            <p style="margin-top: 15px;">
+                <a href="mailto:alitariq4589@gmail.com">Contact</a> | 
+                <a href="https://github.com/alitariq4589" target="_blank">GitHub Profile</a> | 
+                <a href="https://cloud-v.co" target="_blank">Cloud-V Platform</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Load patches from external JSON file
+        async function loadPatches() {
+            try {
+                const response = await fetch('patches.json');
+                const data = await response.json();
+                renderPatches(data);
+            } catch (error) {
+                console.error('Error loading patches:', error);
+                // Fallback to inline data if JSON file not found
+                renderPatches(getDefaultPatches());
+            }
+        }
+
+        // Default patches (fallback)
+        function getDefaultPatches() {
+            return {
+                "lastUpdated": "December 2024",
+                "patches": [
+                    {
+                        "title": "[PATCH] spi: cadence-qspi: Fix runtime PM imbalance in probe",
+                        "subsystem": "SPI",
+                        "date": "Nov 30, 2024",
+                        "status": "Merged",
+                        "description": "Fixed a runtime PM reference count underflow in the Cadence Quad SPI controller driver. The probe function was incorrectly calling <span class=\"code\">pm_runtime_put_autosuspend()</span> twice while only acquiring one reference with <span class=\"code\">pm_runtime_get_sync()</span>, causing usage count to go negative.",
+                        "impact": "Prevents runtime PM subsystem corruption and fixes kernel warning \"Runtime PM usage count underflow!\" on affected hardware. Ensures correct power management state tracking for SPI controller, preventing potential power management issues during device suspend/resume cycles.",
+                        "links": [
+                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251130091251.12120-1-alitariq45892@gmail.com/"}
+                        ]
+                    },
+                    {
+                        "title": "[PATCH v3] pinctrl: starfive: use dynamic GPIO base allocation",
+                        "subsystem": "Pinctrl (RISC-V)",
+                        "date": "Oct 26, 2024",
+                        "status": "Merged",
+                        "description": "Modernized the StarFive JH7110 (RISC-V SoC) pinctrl driver to use dynamic GPIO base allocation instead of deprecated static assignment. Removed hardcoded <span class=\"code\">gc_base</span> values and associated constants (<span class=\"code\">JH7110_SYS_GC_BASE</span>, <span class=\"code\">JH7110_AON_GC_BASE</span>) that are no longer needed with dynamic allocation.",
+                        "impact": "Eliminates kernel deprecation warning \"Static allocation of GPIO base is deprecated, use dynamic allocation.\" Aligns driver with current GPIO subsystem best practices and prevents potential GPIO numbering conflicts in complex systems. Makes the driver more maintainable and future-proof as the GPIO subsystem moves away from static base assignment.",
+                        "links": [
+                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251026114241.53248-1-alitariq45892@gmail.com/"}
+                        ]
+                    },
+                    {
+                        "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
+                        "subsystem": "Wireless (rtl8xxxu)",
+                        "date": "Dec 25, 2024",
+                        "status": "Submitted",
+                        "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
+                        "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
+                        "links": [
+                            {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251225115430.13011-1-alitariq45892@gmail.com/"}
+                        ]
+                    }
+                ]
+            };
+        }
+
+        function renderPatches(data) {
+            // Update stats
+            const mergedCount = data.patches.filter(p => p.status === 'Merged').length;
+            const totalCount = data.patches.length;
+            
+            document.getElementById('stats').innerHTML = `
+                <div class="stat"><strong>${mergedCount}</strong> patches merged to mainline</div>
+                <div class="stat"><strong>${totalCount}</strong> total contributions</div>
+                <div class="stat"><strong>RISC-V</strong> platform focus</div>
+                <div class="stat"><strong>Memory safety</strong> & driver correctness</div>
+            `;
+
+            // Render patches
+            const container = document.getElementById('patches-container');
+            container.innerHTML = data.patches.map(patch => `
+                <div class="patch">
+                    <div class="patch-header">
+                        <div class="patch-title">${patch.title}</div>
+                        <div class="patch-meta">
+                            <span>Subsystem: ${patch.subsystem}</span>
+                            <span>Date: ${patch.date}</span>
+                            <span>Status: ${patch.status}</span>
+                        </div>
+                    </div>
+                    <div class="patch-description">${patch.description}</div>
+                    <div class="patch-impact">
+                        <strong>Impact:</strong> ${patch.impact}
+                    </div>
+                    <div class="patch-links">
+                        ${patch.links.map(link => `<a href="${link.url}" target="_blank">${link.text}</a>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Update last updated date
+            document.getElementById('last-updated').textContent = data.lastUpdated;
+        }
+
+        // Load patches on page load
+        loadPatches();
+    </script>
+</body>
+</html>
