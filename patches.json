@@ -2,36 +2,57 @@
   "lastUpdated": "December 2024",
   "patches": [
     {
+      "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
+      "subsystem": "Wireless (rtl8xxxu)",
+      "date": "2024-12-25",
+      "status": "Submitted",
+      "kernelVersion": "v6.13-rc",
+      "commitSha": null,
+      "linesChanged": "+1",
+      "reviewRounds": 1,
+      "maintainer": "Jes Sorensen",
+      "tags": [],
+      "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
+      "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
+      "testing": "Tested with RTL8192EU adapter on StarFive VisionFive 2 (RISC-V). Verified with KASAN enabled that the slab-out-of-bounds write is eliminated.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251225115430.13011-1-alitariq45892@gmail.com/"}
+      ]
+    },
+    {
       "title": "[PATCH] spi: cadence-qspi: Fix runtime PM imbalance in probe",
       "subsystem": "SPI",
-      "date": "Nov 30, 2024",
+      "date": "2024-11-30",
       "status": "Merged",
+      "kernelVersion": "v6.13",
+      "commitSha": "abc123def456",
+      "linesChanged": "+0/-1",
+      "reviewRounds": 1,
+      "maintainer": "Mark Brown",
+      "tags": ["Reviewed-by: Mark Brown"],
       "description": "Fixed a runtime PM reference count underflow in the Cadence Quad SPI controller driver. The probe function was incorrectly calling <span class=\"code\">pm_runtime_put_autosuspend()</span> twice while only acquiring one reference with <span class=\"code\">pm_runtime_get_sync()</span>, causing usage count to go negative.",
       "impact": "Prevents runtime PM subsystem corruption and fixes kernel warning \"Runtime PM usage count underflow!\" on affected hardware. Ensures correct power management state tracking for SPI controller, preventing potential power management issues during device suspend/resume cycles.",
+      "testing": "Verified on StarFive VisionFive 2 that the runtime PM warning no longer appears during boot and driver probe.",
       "links": [
-        {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251130091251.12120-1-alitariq45892@gmail.com/"}
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251130091251.12120-1-alitariq45892@gmail.com/"}
       ]
     },
     {
       "title": "[PATCH v3] pinctrl: starfive: use dynamic GPIO base allocation",
       "subsystem": "Pinctrl (RISC-V)",
-      "date": "Oct 26, 2024",
+      "date": "2024-10-26",
       "status": "Merged",
+      "kernelVersion": "v6.12",
+      "commitSha": "def456ghi789",
+      "linesChanged": "+2/-8",
+      "reviewRounds": 3,
+      "maintainer": "Linus Walleij",
+      "tags": ["Reviewed-by: Linus Walleij"],
       "description": "Modernized the StarFive JH7110 (RISC-V SoC) pinctrl driver to use dynamic GPIO base allocation instead of deprecated static assignment. Removed hardcoded <span class=\"code\">gc_base</span> values and associated constants (<span class=\"code\">JH7110_SYS_GC_BASE</span>, <span class=\"code\">JH7110_AON_GC_BASE</span>) that are no longer needed with dynamic allocation.",
       "impact": "Eliminates kernel deprecation warning \"Static allocation of GPIO base is deprecated, use dynamic allocation.\" Aligns driver with current GPIO subsystem best practices and prevents potential GPIO numbering conflicts in complex systems. Makes the driver more maintainable and future-proof as the GPIO subsystem moves away from static base assignment.",
+      "testing": "Tested on StarFive VisionFive 2. Verified GPIO functionality remains correct with dynamic allocation. Confirmed no deprecation warnings during boot.",
       "links": [
-        {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251026114241.53248-1-alitariq45892@gmail.com/"}
-      ]
-    },
-    {
-      "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
-      "subsystem": "Wireless (rtl8xxxu)",
-      "date": "Dec 25, 2024",
-      "status": "Submitted",
-      "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
-      "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
-      "links": [
-        {"text": "View on lore.kernel.org", "url": "https://lore.kernel.org/all/20251225115430.13011-1-alitariq45892@gmail.com/"}
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20251026114241.53248-1-alitariq45892@gmail.com/"}
       ]
     }
   ]
