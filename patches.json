@@ -5,7 +5,7 @@
       "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
       "subsystem": "Wireless (rtl8xxxu)",
       "date": "2024-12-25",
-      "status": "Submitted",
+      "status": "Merged",
       "kernelVersion": "v6.19.0-rc1",
       "commitSha": null,
       "linesChanged": "+1",
