@@ -1,6 +1,24 @@
 {
-  "lastUpdated": "December 2024",
+  "lastUpdated": "2026-07-20",
   "patches": [
+    {
+      "title": "[PATCH v3] PCI: starfive: Fix resource leaks on error paths in host_init()",
+      "subsystem": "PCI (StarFive)",
+      "date": "2026-07-14",
+      "status": "Merged",
+      "kernelVersion": "mainline",
+      "commitSha": "22877a061f81c5d58041e384b3131684bec636b9",
+      "linesChanged": "+11/-2",
+      "reviewRounds": 3,
+      "maintainer": "Manivannan Sadhasivam",
+      "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 05a75df4182e", "Fixes: 39b91eb40c6a", "Cc: stable@vger.kernel.org"],
+      "description": "Fixed resource leaks in the StarFive JH7110 PCIe host initialization path. The driver could leave the PHY and clock/reset resources enabled when later setup steps failed, leaving the controller in an inconsistent state and leaking resources. The fix now tears down these resources correctly on error paths and returns the failure status properly.",
+      "impact": "Prevents leaked PHY, clock, and reset resources during PCIe probe failures and ensures the driver leaves the hardware in a consistent state when initialization aborts. This improves robustness and reliability of PCIe bring-up on StarFive platforms.",
+      "testing": "Built and boot-tested on StarFive VisionFive 2 v1.2A. Verified that error-path cleanup works correctly during failed initialization.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260714113029.326207-1-alitariq45892@gmail.com/"}
+      ]
+    },
     {
       "title": "[PATCH] rtl8xxxu: fix slab-out-of-bounds in rtl8xxxu_sta_add",
       "subsystem": "Wireless (rtl8xxxu)",
