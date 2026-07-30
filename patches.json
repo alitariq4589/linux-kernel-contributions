@@ -20,14 +20,14 @@
       ]
     },
     {
-      "title": "PCI: plda: Fix IRQ domain leaks in the error paths of plda_init_interrupts()",
+      "title": "[PATCH v3 2/2] PCI: plda: Fix resource leaks on error paths in plda_init_interrupts()",
       "subsystem": "PCI (PLDA)",
       "date": "2026-07-23",
       "status": "Merged",
       "kernelVersion": "v7.3 (queued in pci/next)",
       "commitSha": "19a30bbb6477bfd7e3109b7a2943e6597ee9de37",
       "linesChanged": "+21/-7",
-      "reviewRounds": null,
+      "reviewRounds": 3,
       "maintainer": "Manivannan Sadhasivam",
       "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 4602c370bdf6", "Fixes: 76c911396807", "Cc: stable@vger.kernel.org"],
       "description": "<span class=\"code\">plda_init_interrupts()</span> created IRQ domains and IRQ mappings but never unwound them when a later step failed, so a failing <span class=\"code\">platform_get_irq()</span> or <span class=\"code\">irq_create_mapping()</span> left the domains allocated and <span class=\"code\">port-&gt;intx_irq</span> still initialized. The error paths now call <span class=\"code\">plda_pcie_irq_domain_deinit()</span>, which also disposes of the INTx and MSI mappings itself, so the MSI failure path can unwind through a single label.",
