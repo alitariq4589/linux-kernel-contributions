@@ -1,12 +1,47 @@
 {
-  "lastUpdated": "2026-07-20",
+  "lastUpdated": "2026-07-30",
   "patches": [
+    {
+      "title": "[PATCH v3 1/2] PCI: plda: Fix use-after-free of event IRQs during teardown",
+      "subsystem": "PCI (PLDA)",
+      "date": "2026-07-23",
+      "status": "Merged",
+      "kernelVersion": "v7.3 (queued in pci/next)",
+      "commitSha": "26b73bae01d6eb81a4a38f36101812f20b2639de",
+      "linesChanged": "+21/-3",
+      "reviewRounds": 3,
+      "maintainer": "Manivannan Sadhasivam",
+      "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 76c911396807", "Cc: stable@vger.kernel.org"],
+      "description": "Fixed a use-after-free in the shared PLDA PCIe host teardown path. <span class=\"code\">plda_pcie_irq_domain_deinit()</span> removed the event IRQ domain with <span class=\"code\">irq_domain_remove()</span>, but the per-event IRQs mapped from that domain are requested with <span class=\"code\">devm_request_irq()</span>, so their <span class=\"code\">free_irq()</span> is deferred by devres until after remove() returns and could dereference the already-freed domain. Each event IRQ is now released explicitly with <span class=\"code\">devm_free_irq()</span> before the domain goes away, the event, INTx, and MSI mappings are disposed of with <span class=\"code\">irq_dispose_mapping()</span>, and the chained-handler teardown is guarded so it only runs for valid IRQ numbers.",
+      "impact": "Removes a use-after-free that could be triggered on driver unbind or module unload on every PLDA-based controller, including StarFive JH7110 and Microchip PolarFire. Also makes teardown safe when it runs from a partially initialized state, and stops IRQ mappings from being leaked. Tagged for stable backport.",
+      "testing": "Build-tested and boot-tested on StarFive VisionFive 2 v1.2A.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260723140434.675512-1-alitariq45892@gmail.com/"}
+      ]
+    },
+    {
+      "title": "PCI: plda: Fix IRQ domain leaks in the error paths of plda_init_interrupts()",
+      "subsystem": "PCI (PLDA)",
+      "date": "2026-07-23",
+      "status": "Merged",
+      "kernelVersion": "v7.3 (queued in pci/next)",
+      "commitSha": "19a30bbb6477bfd7e3109b7a2943e6597ee9de37",
+      "linesChanged": "+21/-7",
+      "reviewRounds": null,
+      "maintainer": "Manivannan Sadhasivam",
+      "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 4602c370bdf6", "Fixes: 76c911396807", "Cc: stable@vger.kernel.org"],
+      "description": "<span class=\"code\">plda_init_interrupts()</span> created IRQ domains and IRQ mappings but never unwound them when a later step failed, so a failing <span class=\"code\">platform_get_irq()</span> or <span class=\"code\">irq_create_mapping()</span> left the domains allocated and <span class=\"code\">port-&gt;intx_irq</span> still initialized. The error paths now call <span class=\"code\">plda_pcie_irq_domain_deinit()</span>, which also disposes of the INTx and MSI mappings itself, so the MSI failure path can unwind through a single label.",
+      "impact": "Prevents permanently leaked IRQ domains and IRQ descriptors when PCIe interrupt setup fails during probe, which previously left kernel resources stranded even after the driver bailed out. Tagged for stable backport.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260723142824.726655-1-alitariq45892@gmail.com/"}
+      ]
+    },
     {
       "title": "[PATCH v3] PCI: starfive: Fix resource leaks on error paths in host_init()",
       "subsystem": "PCI (StarFive)",
       "date": "2026-07-14",
       "status": "Merged",
-      "kernelVersion": "mainline",
+      "kernelVersion": "v7.3 (queued in pci/next)",
       "commitSha": "22877a061f81c5d58041e384b3131684bec636b9",
       "linesChanged": "+11/-2",
       "reviewRounds": 3,
@@ -17,6 +52,41 @@
       "testing": "Built and boot-tested on StarFive VisionFive 2 v1.2A. Verified that error-path cleanup works correctly during failed initialization.",
       "links": [
         {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260714113029.326207-1-alitariq45892@gmail.com/"}
+      ]
+    },
+    {
+      "title": "[PATCH v2] PCI: starfive: Fix Runtime PM handling and teardown ordering",
+      "subsystem": "PCI (StarFive)",
+      "date": "2026-07-13",
+      "status": "Merged",
+      "kernelVersion": "v7.3 (queued in pci/next)",
+      "commitSha": "fb9f7973473fc30d62e0f5f90d59df8ef5223777",
+      "linesChanged": "+2/-2",
+      "reviewRounds": 2,
+      "maintainer": "Manivannan Sadhasivam",
+      "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 39b91eb40c6a"],
+      "description": "<span class=\"code\">starfive_pcie_remove()</span> dropped the runtime PM reference and disabled runtime PM before calling <span class=\"code\">plda_pcie_host_deinit()</span>, so host teardown could reach controller registers after the power domain and clocks were already gone. Removal now deinitializes the host first, while runtime PM is still active, and only then calls <span class=\"code\">pm_runtime_put_sync()</span> and <span class=\"code\">pm_runtime_disable()</span>. The asynchronous <span class=\"code\">pm_runtime_put()</span> was also swapped for the synchronous variant, since the immediately following <span class=\"code\">pm_runtime_disable()</span> would otherwise cancel the queued idle request and leave the device stuck in an active power state.",
+      "impact": "Prevents unclocked register access during driver unbind or module unload, which can fault on RISC-V hardware, and ensures the PCIe controller actually powers down on removal instead of being left permanently active.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260713145014.740898-1-alitariq45892@gmail.com/"}
+      ]
+    },
+    {
+      "title": "[PATCH v2] PCI: starfive: Fix unchecked pm_runtime_get_sync() in probe",
+      "subsystem": "PCI (StarFive)",
+      "date": "2026-07-12",
+      "status": "Merged",
+      "kernelVersion": "v7.3 (queued in pci/next)",
+      "commitSha": "aaae917990623a6ca6b638557056606a1ae4a8d6",
+      "linesChanged": "+5/-1",
+      "reviewRounds": 2,
+      "maintainer": "Manivannan Sadhasivam",
+      "tags": ["Applied-by: Manivannan Sadhasivam", "Fixes: 6168efbebace"],
+      "description": "<span class=\"code\">starfive_pcie_probe()</span> called <span class=\"code\">pm_runtime_get_sync()</span> without checking its return value, so a failed runtime resume still let the driver go on to program PCIe registers through <span class=\"code\">regmap_update_bits()</span>, enable clocks and resets, and power on the PHY on a device that may not have been powered. <span class=\"code\">pm_runtime_get_sync()</span> also leaves the usage counter incremented when resume fails. The probe now uses <span class=\"code\">pm_runtime_resume_and_get()</span>, which balances the counter internally, and bails out before any hardware is touched.",
+      "impact": "Stops PCIe bring-up from proceeding on an unpowered controller, where register access can hang or fault the CPU, and keeps the runtime PM usage count balanced so later suspend and resume cycles track the real power state.",
+      "testing": "Tested on StarFive VisionFive 2 v1.2A board.",
+      "links": [
+        {"text": "Mailing list discussion", "url": "https://lore.kernel.org/all/20260712175427.232234-1-alitariq45892@gmail.com/"}
       ]
     },
     {
