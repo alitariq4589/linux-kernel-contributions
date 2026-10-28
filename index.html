@@ -205,6 +205,93 @@
             color: #79c0ff;
         }
 
+        .stat strong.stat-cve {
+            color: #f85149;
+        }
+
+        .cve-summary {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-left: 3px solid #f85149;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .cve-summary-title {
+            color: #f85149;
+            margin-bottom: 8px;
+        }
+
+        .cve-summary ul {
+            list-style: none;
+        }
+
+        .cve-summary li {
+            padding: 4px 0;
+        }
+
+        .cve-summary li a.cve-jump {
+            color: #c9d1d9;
+            text-decoration: none;
+        }
+
+        .cve-summary li a.cve-jump:hover {
+            color: #58a6ff;
+            text-decoration: underline;
+        }
+
+        .patch.has-cve {
+            border-left: 3px solid #f85149;
+        }
+
+        .patch-cve {
+            margin-bottom: 8px;
+        }
+
+        .cve-badge {
+            display: inline-block;
+            border: 1px solid #f85149;
+            color: #f85149;
+            padding: 0 6px;
+            margin-right: 8px;
+            font-size: 0.85em;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .cve-badge:hover {
+            background: rgba(248, 81, 73, 0.12);
+        }
+
+        .sev {
+            font-size: 0.85em;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+
+        .sev-critical,
+        .sev-high {
+            color: #f85149;
+        }
+
+        .sev-medium {
+            color: #d29922;
+        }
+
+        .sev-low {
+            color: #8b949e;
+        }
+
+        .patch-impact.patch-security {
+            border-left-color: #f85149;
+            color: #c9d1d9;
+        }
+
+        .patch-impact.patch-security strong {
+            color: #f85149;
+        }
+
         footer {
             margin-top: 60px;
             padding-top: 20px;
@@ -264,6 +351,10 @@
             <!-- Populated by JavaScript -->
         </div>
 
+        <div id="cve-summary">
+            <!-- Populated by JavaScript -->
+        </div>
+
         <h2>Contributions (Newest First)</h2>
         <div id="patches-container">
             <!-- Populated by JavaScript -->
@@ -292,6 +383,23 @@
             }
         }
 
+        function patchId(patch) {
+            return `patch-${patch.commitSha.slice(0, 12)}`;
+        }
+
+        // Highest score first; unscored CVEs sort last
+        function cveScore(cve) {
+            return cve.cvss && cve.cvss.length ? cve.cvss[0].score : 0;
+        }
+
+        function cveBadge(cve) {
+            const primary = cve.cvss && cve.cvss[0];
+            const scores = (cve.cvss || []).map(s => `${s.source}: ${s.score} ${s.severity} (${s.vector})`).join('\n');
+            return `<a class="cve-badge" href="https://www.cve.org/CVERecord?id=${cve.id}" target="_blank" title="Published ${cve.published}">${cve.id}</a>${
+                primary ? `<span class="sev sev-${primary.severity.toLowerCase()}" title="${scores}">CVSS ${primary.score} ${primary.severity}</span>` : ''
+            }`;
+        }
+
         function renderPatches(data) {
             // Render intro text
             if (data.intro) {
@@ -306,11 +414,26 @@
             // Update stats
             const mergedCount = sortedPatches.filter(p => p.status === 'Merged').length;
             const totalCount = sortedPatches.length;
-            
+            const cvePatches = sortedPatches.filter(p => p.cve);
+
             document.getElementById('stats').innerHTML = `
                 <div class="stat"><strong>${mergedCount}</strong> patches merged to mainline</div>
                 <div class="stat"><strong>${totalCount}</strong> total contributions</div>
+                ${cvePatches.length ? `<div class="stat"><strong class="stat-cve">${cvePatches.length}</strong> CVE-assigned fixes</div>` : ''}
             `;
+
+            // Render security fixes summary
+            if (cvePatches.length) {
+                const ranked = [...cvePatches].sort((a, b) => cveScore(b.cve) - cveScore(a.cve));
+                document.getElementById('cve-summary').innerHTML = `
+                    <div class="cve-summary">
+                        <div class="cve-summary-title">Security fixes with assigned CVEs</div>
+                        <ul>
+                            ${ranked.map(p => `<li>${cveBadge(p.cve)}<a class="cve-jump" href="#${patchId(p)}">${p.cve.headline}</a></li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
 
             // Render patches
             const container = document.getElementById('patches-container');
@@ -321,8 +444,9 @@
                 });
                 
                 return `
-                    <div class="patch">
+                    <div class="patch${patch.cve ? ' has-cve' : ''}"${patch.commitSha ? ` id="${patchId(patch)}"` : ''}>
                         <div class="patch-header">
+                            ${patch.cve ? `<div class="patch-cve">${cveBadge(patch.cve)}</div>` : ''}
                             <div class="patch-title">${patch.title}</div>
                             <div class="patch-meta">
                                 <span>Subsystem: ${patch.subsystem}</span>
@@ -337,7 +461,11 @@
                         </div>` : ''}
 
                         ${patch.description ? `<div class="patch-description">${patch.description}</div>` : ''}
-                        
+
+                        ${patch.cve ? `<div class="patch-impact patch-security">
+                            <strong>Security:</strong> ${patch.cve.importance}
+                        </div>` : ''}
+
                         ${patch.impact ? `<div class="patch-impact">
                             <strong>Impact:</strong> ${patch.impact}
                         </div>` : ''}

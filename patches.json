@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-08-26",
+  "lastUpdated": "2026-10-28",
   "patches": [
     {
       "title": "[PATCH v3 1/2] PCI: plda: Fix use-after-free of event IRQs during teardown",
       "subsystem": "PCI (PLDA)",
       "date": "2026-07-23",
       "status": "Merged",
-      "kernelVersion": "v7.3 (in mainline, merge window)",
+      "kernelVersion": "v7.3 (backported to v6.12.109, v6.18.50, v7.2.4 stable)",
       "commitSha": "26b73bae01d6eb81a4a38f36101812f20b2639de",
       "linesChanged": "+21/-3",
       "reviewRounds": 3,
@@ -16,6 +16,13 @@
         "Fixes: 76c911396807",
         "Cc: stable@vger.kernel.org"
       ],
+      "cve": {
+        "id": "CVE-2026-89455",
+        "published": "2026-09-11",
+        "cvss": [],
+        "headline": "Use-after-free in PLDA PCIe host IRQ teardown",
+        "importance": "Use-after-free of a freed IRQ domain in the shared PLDA PCIe host code, hit when the StarFive JH7110 PCIe driver is unbound or unloaded; present since v6.11."
+      },
       "description": "Fixed a use-after-free in the shared PLDA PCIe host teardown path. <span class=\"code\">plda_pcie_irq_domain_deinit()</span> removed the event IRQ domain with <span class=\"code\">irq_domain_remove()</span>, but the per-event IRQs mapped from that domain are requested with <span class=\"code\">devm_request_irq()</span>, so their <span class=\"code\">free_irq()</span> is deferred by devres until after remove() returns and could dereference the already-freed domain. Each event IRQ is now released explicitly with <span class=\"code\">devm_free_irq()</span> before the domain goes away, the event, INTx, and MSI mappings are disposed of with <span class=\"code\">irq_dispose_mapping()</span>, and the chained-handler teardown is guarded so it only runs for valid IRQ numbers.",
       "impact": "Removes a use-after-free that could be triggered on driver unbind or module unload on every PLDA-based controller, including StarFive JH7110 and Microchip PolarFire. Also makes teardown safe when it runs from a partially initialized state, and stops IRQ mappings from being leaked. Tagged for stable backport.",
       "testing": "Build-tested and boot-tested on StarFive VisionFive 2 v1.2A.",
@@ -31,7 +38,7 @@
       "subsystem": "PCI (PLDA)",
       "date": "2026-07-23",
       "status": "Merged",
-      "kernelVersion": "v7.3 (in mainline, merge window)",
+      "kernelVersion": "v7.3 (backported to v6.12.109, v6.18.50, v7.2.4 stable)",
       "commitSha": "19a30bbb6477bfd7e3109b7a2943e6597ee9de37",
       "linesChanged": "+21/-7",
       "reviewRounds": 3,
@@ -42,6 +49,13 @@
         "Fixes: 76c911396807",
         "Cc: stable@vger.kernel.org"
       ],
+      "cve": {
+        "id": "CVE-2026-89454",
+        "published": "2026-09-11",
+        "cvss": [],
+        "headline": "IRQ domain leak in PLDA PCIe host error paths",
+        "importance": "IRQ domains and mappings were leaked whenever PCIe interrupt setup failed during probe on PLDA-based hosts (StarFive JH7110, Microchip PolarFire SoC); present since v6.11."
+      },
       "description": "<span class=\"code\">plda_init_interrupts()</span> created IRQ domains and IRQ mappings but never unwound them when a later step failed, so a failing <span class=\"code\">platform_get_irq()</span> or <span class=\"code\">irq_create_mapping()</span> left the domains allocated and <span class=\"code\">port-&gt;intx_irq</span> still initialized. The error paths now call <span class=\"code\">plda_pcie_irq_domain_deinit()</span>, which also disposes of the INTx and MSI mappings itself, so the MSI failure path can unwind through a single label.",
       "impact": "Prevents permanently leaked IRQ domains and IRQ descriptors when PCIe interrupt setup fails during probe, which previously left kernel resources stranded even after the driver bailed out. Tagged for stable backport.",
       "links": [
@@ -56,7 +70,7 @@
       "subsystem": "PCI (StarFive)",
       "date": "2026-07-16",
       "status": "Merged",
-      "kernelVersion": "v7.3 (in mainline, merge window)",
+      "kernelVersion": "v7.3 (backported to v6.12.112, v6.18.51, v7.2.4 stable)",
       "commitSha": "22877a061f81c5d58041e384b3131684bec636b9",
       "linesChanged": "+11/-2",
       "reviewRounds": 3,
@@ -82,7 +96,7 @@
       "subsystem": "PCI (StarFive)",
       "date": "2026-07-18",
       "status": "Merged",
-      "kernelVersion": "v7.3 (in mainline, merge window)",
+      "kernelVersion": "v7.3 (backported to v6.12.110, v6.18.52, v7.2.6 stable)",
       "commitSha": "fb9f7973473fc30d62e0f5f90d59df8ef5223777",
       "linesChanged": "+2/-2",
       "reviewRounds": 2,
@@ -105,7 +119,7 @@
       "subsystem": "PCI (StarFive)",
       "date": "2026-07-18",
       "status": "Merged",
-      "kernelVersion": "v7.3 (in mainline, merge window)",
+      "kernelVersion": "v7.3 (backported to v6.12.110, v6.18.52, v7.2.6 stable)",
       "commitSha": "aaae917990623a6ca6b638557056606a1ae4a8d6",
       "linesChanged": "+5/-1",
       "reviewRounds": 2,
@@ -129,7 +143,7 @@
       "subsystem": "Wireless (rtl8xxxu)",
       "date": "2025-12-25",
       "status": "Merged",
-      "kernelVersion": "v7.0 (backported to v6.18.11 stable)",
+      "kernelVersion": "v7.0 (backported to v6.12.72, v6.18.11, v6.19.1 stable)",
       "commitSha": "86c946bcc00f6390ef65e9614ae60a9377e454f8",
       "linesChanged": "+1",
       "reviewRounds": 1,
@@ -140,6 +154,27 @@
         "Fixes: eef55f1545c9",
         "Cc: stable@vger.kernel.org"
       ],
+      "cve": {
+        "id": "CVE-2025-71234",
+        "published": "2026-02-18",
+        "cvss": [
+          {
+            "score": 8.8,
+            "severity": "HIGH",
+            "source": "Linux kernel CNA",
+            "vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+          },
+          {
+            "score": 7.8,
+            "severity": "HIGH",
+            "source": "NVD",
+            "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+          }
+        ],
+        "cwe": "CWE-787 Out-of-bounds Write",
+        "headline": "Heap out-of-bounds write in the rtl8xxxu Wi-Fi driver",
+        "importance": "Rated CVSS 8.8 HIGH by the Linux kernel CNA: a nearby, unauthenticated Wi-Fi device associating with an rtl8xxxu-based access point could corrupt kernel heap memory (kernels since v6.9)."
+      },
       "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
       "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
       "testing": "Tested with RTL8192EU adapter on StarFive VisionFive 2 (RISC-V). Verified with KASAN enabled that the slab-out-of-bounds write is eliminated.",
@@ -181,7 +216,7 @@
       "status": "Merged",
       "kernelVersion": "v6.19",
       "commitSha": "9dc966799ac9a2573d970080334a801fcc283a1b",
-      "linesChanged": "+2/-8",
+      "linesChanged": "+1/-6",
       "reviewRounds": 3,
       "maintainer": "Linus Walleij",
       "tags": [
