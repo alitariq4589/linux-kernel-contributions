@@ -1,6 +1,76 @@
 {
-  "lastUpdated": "2026-10-28",
+  "lastUpdated": "2026-11-18",
   "patches": [
+    {
+      "title": "[PATCH net v2 1/2] net: spacemit: Fix TX timeout work deadlocking on itself",
+      "subsystem": "Ethernet (SpacemiT K1)",
+      "date": "2026-11-13",
+      "status": "Accepted",
+      "kernelVersion": "v7.4 (queued in netdev/net)",
+      "commitSha": "0dcf21648f258d2be36def2aacc8c7ee5e15e2ee",
+      "linesChanged": "+6/-2",
+      "reviewRounds": 1,
+      "maintainer": "Jakub Kicinski",
+      "tags": [
+        "Reviewed-by: Vivian Wang",
+        "Reviewed-by: Muhammad Bilal",
+        "Reported-by: Troy Mitchell",
+        "Suggested-by: Vivian Wang",
+        "Applied-by: Jakub Kicinski",
+        "Fixes: bfec6d7f2001"
+      ],
+      "description": "<span class=\"code\">emac_tx_timeout_task()</span>, the driver's TX-timeout recovery work, takes RTNL and calls <span class=\"code\">dev_close()</span>, which reaches <span class=\"code\">emac_down()</span>, which called <span class=\"code\">cancel_work_sync()</span> on that same work, so the work waited for itself with RTNL held. The fix removes that call: <span class=\"code\">emac_suspend()</span> and <span class=\"code\">emac_remove()</span> now cancel and disable the work with <span class=\"code\">disable_work_sync()</span>, <span class=\"code\">emac_resume()</span> re-enables it with <span class=\"code\">enable_work()</span>, and a normal close relies on the work's existing <span class=\"code\">netif_running()</span> check (the core clears the running state before calling <span class=\"code\">.ndo_stop</span>).",
+      "impact": "Every TX timeout on a SpacemiT K1 board, raised by the netdev watchdog when the TX queue has been stopped for more than 5 seconds, deadlocked the recovery work with RTNL held: the interface never came back, and every later operation that needs RTNL, such as interface, address and IPv4 route changes, blocked until reboot. Present since the driver was added in v6.18. With the fix, the work's close-and-reopen reset can complete. The change also removes a second deadlock, between an interface close and a TX-timeout work already waiting for RTNL.",
+      "testing": "Tested on Orange Pi RV2 (SpacemiT K1) with suspend/resume cycles and kselftest, with lockdep enabled. The deadlock was found by code inspection (reported by Troy Mitchell in review) and was not reproduced on hardware.",
+      "links": [
+        {
+          "text": "Mailing list discussion",
+          "url": "https://lore.kernel.org/all/20261113132435.434615-1-alitariq45892@gmail.com/"
+        },
+        {
+          "text": "v1 review where the deadlock was reported",
+          "url": "https://lore.kernel.org/all/20261105123441.2524171-1-alitariq45892@gmail.com/"
+        }
+      ]
+    },
+    {
+      "title": "[PATCH net v2 2/2] net: spacemit: Hold RTNL lock in emac_resume() and emac_suspend()",
+      "subsystem": "Ethernet (SpacemiT K1)",
+      "date": "2026-11-13",
+      "status": "Accepted",
+      "kernelVersion": "v7.4 (queued in netdev/net)",
+      "commitSha": "f60eae61466cca9b50690bd3f2b5b4b2397d9376",
+      "linesChanged": "+10/-1",
+      "reviewRounds": 2,
+      "maintainer": "Jakub Kicinski",
+      "tags": [
+        "Reviewed-by: Vivian Wang",
+        "Reviewed-by: Muhammad Bilal",
+        "Applied-by: Jakub Kicinski",
+        "Fixes: bfec6d7f2001"
+      ],
+      "description": "<span class=\"code\">emac_suspend()</span> and <span class=\"code\">emac_resume()</span> called <span class=\"code\">emac_stop()</span> and <span class=\"code\">emac_open()</span>, the driver's <span class=\"code\">.ndo_stop</span> and <span class=\"code\">.ndo_open</span>, without RTNL, which the networking core always holds for those callbacks. On suspend, <span class=\"code\">phy_disconnect()</span> then read the RTNL-protected <span class=\"code\">dev-&gt;hwprov</span> pointer in <span class=\"code\">phy_detach_internal()</span> without the lock, and lockdep reported \"suspicious RCU usage\". Both callbacks now take RTNL before their <span class=\"code\">netif_running()</span> checks, so the interface cannot be opened or closed between the check and <span class=\"code\">emac_stop()</span> or <span class=\"code\">emac_open()</span>. Suspend disables the TX timeout work (patch 1/2) before taking the lock, so it never waits under RTNL for that work, which itself takes RTNL.",
+      "impact": "Suspend and resume on SpacemiT K1 boards now call <span class=\"code\">.ndo_stop</span> and <span class=\"code\">.ndo_open</span> under RTNL, as the networking core requires. The suspend warning, printed only by lockdep-enabled kernels (<span class=\"code\">CONFIG_PROVE_RCU</span>), is gone, and <span class=\"code\">dev_open()</span> or <span class=\"code\">dev_close()</span> can no longer run between the <span class=\"code\">netif_running()</span> check and the stop or open call.",
+      "testing": "Found by CI suspend tests on Orange Pi RV2 (SpacemiT K1). With lockdep: 12 suspend/resume cycles without the warning, no new kselftest failures. The board loses its network after about a dozen cycles with or without the series, a separate issue.",
+      "links": [
+        {
+          "text": "Mailing list discussion",
+          "url": "https://lore.kernel.org/all/20261113132435.434615-1-alitariq45892@gmail.com/"
+        },
+        {
+          "text": "v1 discussion",
+          "url": "https://lore.kernel.org/all/20261105123441.2524171-1-alitariq45892@gmail.com/"
+        },
+        {
+          "text": "CI log with the warning",
+          "url": "https://kernelci.cloud-v.co/scheduler/job/549#L2168"
+        },
+        {
+          "text": "CI log after the fix",
+          "url": "https://kernelci.cloud-v.co/scheduler/job/589"
+        }
+      ]
+    },
     {
       "title": "[PATCH v3 1/2] PCI: plda: Fix use-after-free of event IRQs during teardown",
       "subsystem": "PCI (PLDA)",
@@ -9,7 +79,7 @@
       "kernelVersion": "v7.3 (backported to v6.12.109, v6.18.50, v7.2.4 stable)",
       "commitSha": "26b73bae01d6eb81a4a38f36101812f20b2639de",
       "linesChanged": "+21/-3",
-      "reviewRounds": 3,
+      "reviewRounds": 2,
       "maintainer": "Manivannan Sadhasivam",
       "tags": [
         "Applied-by: Manivannan Sadhasivam",
@@ -21,10 +91,10 @@
         "published": "2026-09-11",
         "cvss": [],
         "headline": "Use-after-free in PLDA PCIe host IRQ teardown",
-        "importance": "Use-after-free of a freed IRQ domain in the shared PLDA PCIe host code, hit when the StarFive JH7110 PCIe driver is unbound or unloaded; present since v6.11."
+        "importance": "Use-after-free of the event IRQ domain in StarFive JH7110 PCIe teardown, reachable only via privileged driver unbind or module unload, or a host-bridge registration failure during probe."
       },
-      "description": "Fixed a use-after-free in the shared PLDA PCIe host teardown path. <span class=\"code\">plda_pcie_irq_domain_deinit()</span> removed the event IRQ domain with <span class=\"code\">irq_domain_remove()</span>, but the per-event IRQs mapped from that domain are requested with <span class=\"code\">devm_request_irq()</span>, so their <span class=\"code\">free_irq()</span> is deferred by devres until after remove() returns and could dereference the already-freed domain. Each event IRQ is now released explicitly with <span class=\"code\">devm_free_irq()</span> before the domain goes away, the event, INTx, and MSI mappings are disposed of with <span class=\"code\">irq_dispose_mapping()</span>, and the chained-handler teardown is guarded so it only runs for valid IRQ numbers.",
-      "impact": "Removes a use-after-free that could be triggered on driver unbind or module unload on every PLDA-based controller, including StarFive JH7110 and Microchip PolarFire. Also makes teardown safe when it runs from a partially initialized state, and stops IRQ mappings from being leaked. Tagged for stable backport.",
+      "description": "Fixed a use-after-free in the shared PLDA PCIe host teardown path. <span class=\"code\">plda_pcie_irq_domain_deinit()</span> removed the event IRQ domain with <span class=\"code\">irq_domain_remove()</span>, but the per-event IRQs mapped from that domain are requested with <span class=\"code\">devm_request_irq()</span>, so their <span class=\"code\">free_irq()</span> is deferred by devres until after a failed probe() or remove() returns, and then dereferences the already-freed domain while deactivating the interrupt. Each event IRQ is now released explicitly with <span class=\"code\">devm_free_irq()</span> before the domain goes away, the event-domain mappings (including the INTx and MSI summary IRQs) are disposed of with <span class=\"code\">irq_dispose_mapping()</span>, and the chained-handler teardown is guarded so it only runs for valid IRQ numbers.",
+      "impact": "Removes a use-after-free that affected StarFive JH7110, the only in-tree user of the PLDA host init/deinit helpers (Microchip PolarFire SoC never calls them). Also stops event IRQ mappings from leaking and prepares <span class=\"code\">plda_pcie_irq_domain_deinit()</span> for the error-path unwinding added in patch 2/2.",
       "testing": "Build-tested and boot-tested on StarFive VisionFive 2 v1.2A.",
       "links": [
         {
@@ -54,10 +124,11 @@
         "published": "2026-09-11",
         "cvss": [],
         "headline": "IRQ domain leak in PLDA PCIe host error paths",
-        "importance": "IRQ domains and mappings were leaked whenever PCIe interrupt setup failed during probe on PLDA-based hosts (StarFive JH7110, Microchip PolarFire SoC); present since v6.11."
+        "importance": "Permanent leak of IRQ domains and mappings in StarFive JH7110 and Microchip PolarFire SoC PCIe probe, reachable only when interrupt setup fails after domain creation, e.g. a bad device-tree interrupt."
       },
-      "description": "<span class=\"code\">plda_init_interrupts()</span> created IRQ domains and IRQ mappings but never unwound them when a later step failed, so a failing <span class=\"code\">platform_get_irq()</span> or <span class=\"code\">irq_create_mapping()</span> left the domains allocated and <span class=\"code\">port-&gt;intx_irq</span> still initialized. The error paths now call <span class=\"code\">plda_pcie_irq_domain_deinit()</span>, which also disposes of the INTx and MSI mappings itself, so the MSI failure path can unwind through a single label.",
-      "impact": "Prevents permanently leaked IRQ domains and IRQ descriptors when PCIe interrupt setup fails during probe, which previously left kernel resources stranded even after the driver bailed out. Tagged for stable backport.",
+      "description": "<span class=\"code\">plda_init_interrupts()</span> created IRQ domains and IRQ mappings but returned without unwinding them when a later step failed, and neither in-tree caller tore them down. A failing <span class=\"code\">platform_get_irq()</span>, <span class=\"code\">irq_create_mapping()</span> or event IRQ request left the domains allocated, and a failed MSI mapping also left <span class=\"code\">port-&gt;intx_irq</span> mapped. Every error path after domain creation now jumps to one label that calls <span class=\"code\">plda_pcie_irq_domain_deinit()</span>, which, since companion patch 1/2, also disposes of the event-domain mappings, including the INTx and MSI summary IRQs.",
+      "impact": "Interrupt-setup failures now unwind through the same <span class=\"code\">plda_pcie_irq_domain_deinit()</span> already used on host-bridge registration failure and StarFive driver removal, which is why this patch depends on patch 1/2; a probe that fails after IRQ domain creation on either in-tree host no longer leaves IRQ domains and IRQ descriptors behind.",
+      "testing": "Build-tested and boot-tested on StarFive VisionFive 2 v1.2A together with patch 1/2.",
       "links": [
         {
           "text": "Mailing list discussion",
@@ -81,9 +152,9 @@
         "Fixes: 39b91eb40c6a",
         "Cc: stable@vger.kernel.org"
       ],
-      "description": "Fixed resource leaks in the StarFive JH7110 PCIe host initialization path. The driver could leave the PHY and clock/reset resources enabled when later setup steps failed, leaving the controller in an inconsistent state and leaking resources. The fix now tears down these resources correctly on error paths and returns the failure status properly.",
-      "impact": "Prevents leaked PHY, clock, and reset resources during PCIe probe failures and ensures the driver leaves the hardware in a consistent state when initialization aborts. This improves robustness and reliability of PCIe bring-up on StarFive platforms.",
-      "testing": "Built and boot-tested on StarFive VisionFive 2 v1.2A. Verified that error-path cleanup works correctly during failed initialization.",
+      "description": "Fixed two error paths in <span class=\"code\">starfive_pcie_host_init()</span> for the StarFive JH7110 PCIe controller. When <span class=\"code\">starfive_pcie_clk_rst_init()</span> failed, the function returned without disabling the already-enabled PHY, leaving it powered on. A <span class=\"code\">regulator_enable()</span> failure on the optional <span class=\"code\">vpcie3v3</span> slot supply was only logged and success was returned, so the driver kept configuring PCIe hardware that might be unpowered. Both paths now unwind in reverse order and return the error.",
+      "impact": "A <span class=\"code\">vpcie3v3</span> enable failure now fails probe with its error code; previously the error was swallowed and bring-up continued with the slot possibly unpowered, and any later teardown triggered an unbalanced <span class=\"code\">regulator_disable()</span> warning. A clock/reset failure no longer leaves the PHY powered on.",
+      "testing": "Build-tested and boot-tested on StarFive VisionFive 2 v1.2A.",
       "links": [
         {
           "text": "Mailing list discussion",
@@ -105,8 +176,8 @@
         "Applied-by: Manivannan Sadhasivam",
         "Fixes: 39b91eb40c6a"
       ],
-      "description": "<span class=\"code\">starfive_pcie_remove()</span> dropped the runtime PM reference and disabled runtime PM before calling <span class=\"code\">plda_pcie_host_deinit()</span>, so host teardown could reach controller registers after the power domain and clocks were already gone. Removal now deinitializes the host first, while runtime PM is still active, and only then calls <span class=\"code\">pm_runtime_put_sync()</span> and <span class=\"code\">pm_runtime_disable()</span>. The asynchronous <span class=\"code\">pm_runtime_put()</span> was also swapped for the synchronous variant, since the immediately following <span class=\"code\">pm_runtime_disable()</span> would otherwise cancel the queued idle request and leave the device stuck in an active power state.",
-      "impact": "Prevents unclocked register access during driver unbind or module unload, which can fault on RISC-V hardware, and ensures the PCIe controller actually powers down on removal instead of being left permanently active.",
+      "description": "<span class=\"code\">starfive_pcie_remove()</span> dropped the runtime PM reference and disabled runtime PM before calling <span class=\"code\">plda_pcie_host_deinit()</span>, so teardown did not mirror probe, which takes that reference before <span class=\"code\">plda_pcie_host_init()</span>. Removal now deinitializes the host first, while the reference is still held, and only then calls <span class=\"code\">pm_runtime_put_sync()</span> and <span class=\"code\">pm_runtime_disable()</span>, the same sequence as the probe error path. The put is synchronous because an asynchronous <span class=\"code\">pm_runtime_put()</span> followed immediately by <span class=\"code\">pm_runtime_disable()</span> can cancel the still-queued idle request and leave the device marked active.",
+      "impact": "Driver unbind and module unload now tear down the host in reverse probe order, and the device is runtime-suspended before runtime PM is disabled. A latent ordering bug found by automated review: on JH7110, runtime PM gates no clock or power domain, so it had caused no observed failure.",
       "links": [
         {
           "text": "Mailing list discussion",
@@ -128,8 +199,8 @@
         "Applied-by: Manivannan Sadhasivam",
         "Fixes: 6168efbebace"
       ],
-      "description": "<span class=\"code\">starfive_pcie_probe()</span> called <span class=\"code\">pm_runtime_get_sync()</span> without checking its return value, so a failed runtime resume still let the driver go on to program PCIe registers through <span class=\"code\">regmap_update_bits()</span>, enable clocks and resets, and power on the PHY on a device that may not have been powered. <span class=\"code\">pm_runtime_get_sync()</span> also leaves the usage counter incremented when resume fails. The probe now uses <span class=\"code\">pm_runtime_resume_and_get()</span>, which balances the counter internally, and bails out before any hardware is touched.",
-      "impact": "Stops PCIe bring-up from proceeding on an unpowered controller, where register access can hang or fault the CPU, and keeps the runtime PM usage count balanced so later suspend and resume cycles track the real power state.",
+      "description": "<span class=\"code\">starfive_pcie_probe()</span> called <span class=\"code\">pm_runtime_get_sync()</span> without checking its return value, so a failed runtime resume still let probe continue into <span class=\"code\">starfive_pcie_host_init()</span>, which powers on the PHY, programs the STG syscon through <span class=\"code\">regmap_update_bits()</span>, and enables clocks and deasserts resets on a device that may not have been powered. Because <span class=\"code\">pm_runtime_get_sync()</span> keeps the usage counter incremented on failure, the probe now uses <span class=\"code\">pm_runtime_resume_and_get()</span>, which drops the reference itself on failure, and on error disables runtime PM and returns through <span class=\"code\">dev_err_probe()</span> before <span class=\"code\">plda_pcie_host_init()</span> touches the controller.",
+      "impact": "A failed runtime resume now fails probe before the PHY, syscon, clocks or controller registers are touched, with runtime PM unwound. Error-path hardening: the driver has no runtime PM callbacks and the in-tree JH7110 PCIe nodes have no power domain, so the path is not normally reached.",
       "testing": "Tested on StarFive VisionFive 2 v1.2A board.",
       "links": [
         {
@@ -145,7 +216,7 @@
       "status": "Merged",
       "kernelVersion": "v7.0 (backported to v6.12.72, v6.18.11, v6.19.1 stable)",
       "commitSha": "86c946bcc00f6390ef65e9614ae60a9377e454f8",
-      "linesChanged": "+1",
+      "linesChanged": "+1/-0",
       "reviewRounds": 1,
       "maintainer": "Ping-Ke Shih",
       "tags": [
@@ -173,10 +244,10 @@
         ],
         "cwe": "CWE-787 Out-of-bounds Write",
         "headline": "Heap out-of-bounds write in the rtl8xxxu Wi-Fi driver",
-        "importance": "Rated CVSS 8.8 HIGH by the Linux kernel CNA: a nearby, unauthenticated Wi-Fi device associating with an rtl8xxxu-based access point could corrupt kernel heap memory (kernels since v6.9)."
+        "importance": "Heap out-of-bounds write whenever an rtl8xxxu adapter associates or accepts a client, reachable in AP mode by unauthenticated nearby devices; rated HIGH by the kernel CNA (8.8) and NVD (7.8)."
       },
-      "description": "Fixed a critical memory safety issue in the rtl8xxxu wireless driver. The driver wasn't setting <span class=\"code\">hw->sta_data_size</span>, causing mac80211 to allocate insufficient space for per-station private data. This resulted in slab-out-of-bounds writes when <span class=\"code\">rtl8xxxu_sta_add()</span> accessed <span class=\"code\">sta->drv_priv</span> members. Bug was caught by KASAN on RISC-V hardware with RTL8192EU adapter.",
-      "impact": "Fixes memory corruption vulnerability that could cause kernel crashes, data corruption, or potential security issues. Prevents KASAN-detected slab-out-of-bounds write in station addition path. This is a critical correctness fix that ensures proper memory allocation for driver private data structures in mac80211 wireless stack. Also tagged for stable kernel backport.",
+      "description": "Fixed a slab-out-of-bounds write in the rtl8xxxu USB Wi-Fi driver. The driver never set <span class=\"code\">hw-&gt;sta_data_size</span>, so mac80211's <span class=\"code\">__sta_info_alloc()</span> allocated no space for the per-station private area, and <span class=\"code\">rtl8xxxu_sta_add()</span> wrote <span class=\"code\">struct rtl8xxxu_sta_info</span> fields through <span class=\"code\">sta-&gt;drv_priv</span> past the end of the allocation. The fix sets <span class=\"code\">hw-&gt;sta_data_size</span> to <span class=\"code\">sizeof(struct rtl8xxxu_sta_info)</span> in <span class=\"code\">rtl8xxxu_probe()</span>. Caught by KASAN on RISC-V with an RTL8192EU adapter.",
+      "impact": "The out-of-bounds accesses did not stop at <span class=\"code\">rtl8xxxu_sta_add()</span>: RX RSSI averaging (<span class=\"code\">ewma_rssi_add()</span>), the 2-second rate-adaptation watchdog and TX descriptor setup kept using the same out-of-bounds region for as long as the station stayed associated.",
       "testing": "Tested with RTL8192EU adapter on StarFive VisionFive 2 (RISC-V). Verified with KASAN enabled that the slab-out-of-bounds write is eliminated.",
       "links": [
         {
@@ -187,7 +258,7 @@
     },
     {
       "title": "[PATCH] spi: cadence-qspi: Fix runtime PM imbalance in probe",
-      "subsystem": "SPI",
+      "subsystem": "SPI (Cadence QSPI)",
       "date": "2025-11-30",
       "status": "Merged",
       "kernelVersion": "v6.19",
@@ -199,9 +270,9 @@
         "Applied-by: Mark Brown",
         "Fixes: 30dbc1c8d50f"
       ],
-      "description": "Fixed a runtime PM reference count underflow in the Cadence Quad SPI controller driver. The probe function was incorrectly calling <span class=\"code\">pm_runtime_put_autosuspend()</span> twice while only acquiring one reference with <span class=\"code\">pm_runtime_get_sync()</span>, causing usage count to go negative.",
-      "impact": "Prevents runtime PM subsystem corruption and fixes kernel warning \"Runtime PM usage count underflow!\" on affected hardware. Ensures correct power management state tracking for SPI controller, preventing potential power management issues during device suspend/resume cycles.",
-      "testing": "Verified on StarFive VisionFive 2 that the runtime PM warning no longer appears during boot and driver probe.",
+      "description": "Fixed a runtime PM usage count underflow in the Cadence Quad SPI controller driver. Commit <span class=\"code\">30dbc1c8d50f</span> made the success path of <span class=\"code\">cqspi_probe()</span> call <span class=\"code\">pm_runtime_put_autosuspend()</span> twice while only one reference was taken with <span class=\"code\">pm_runtime_get_noresume()</span>; the patch removes the first, redundant call.",
+      "impact": "Fixes the \"Runtime PM usage count underflow!\" warning that <span class=\"code\">30dbc1c8d50f</span> (v6.17) caused at probe on every platform except SoCFPGA, where the driver disables runtime PM; the PM core rejected the extra put, so the warning was the only visible effect. The same one-line fix by another contributor (<span class=\"code\">10eaa4c4a257</span>) reached mainline first, in v6.18, so this commit duplicated it when the SPI tree was merged for v6.19.",
+      "testing": "Verified on StarFive VisionFive 2 v1.2A that the runtime PM warning no longer appears during boot and driver probe.",
       "links": [
         {
           "text": "Mailing list discussion",
@@ -224,8 +295,8 @@
         "Reviewed-by: Bartosz Golaszewski",
         "Applied-by: Linus Walleij"
       ],
-      "description": "Modernized the StarFive JH7110 (RISC-V SoC) pinctrl driver to use dynamic GPIO base allocation instead of deprecated static assignment. Removed hardcoded <span class=\"code\">gc_base</span> values and associated constants (<span class=\"code\">JH7110_SYS_GC_BASE</span>, <span class=\"code\">JH7110_AON_GC_BASE</span>) that are no longer needed with dynamic allocation.",
-      "impact": "Eliminates kernel deprecation warning \"Static allocation of GPIO base is deprecated, use dynamic allocation.\" Aligns driver with current GPIO subsystem best practices and prevents potential GPIO numbering conflicts in complex systems. Makes the driver more maintainable and future-proof as the GPIO subsystem moves away from static base assignment.",
+      "description": "Switched the StarFive JH7110 (RISC-V SoC) pinctrl driver from the deprecated static GPIO base to dynamic allocation by setting <span class=\"code\">sfp-&gt;gc.base = -1</span> in <span class=\"code\">jh7110_pinctrl_probe()</span>. Removed the now-unused <span class=\"code\">gc_base</span> member of <span class=\"code\">struct jh7110_pinctrl_soc_info</span> and the <span class=\"code\">JH7110_SYS_GC_BASE</span> (0) and <span class=\"code\">JH7110_AON_GC_BASE</span> (64) constants of the sys and aon controllers.",
+      "impact": "Removes the warning \"Static allocation of GPIO base is deprecated, use dynamic allocation.\" that the GPIO core printed at probe for both JH7110 GPIO controllers (fixed bases 0 and 64) since the driver was added in v6.3. Their bases now come from the dynamic range starting at 512, so GPIO numbers in the deprecated global sysfs interface change; device-tree consumers and <span class=\"code\">/dev/gpiochipN</span> users address lines by chip offset and are unaffected.",
       "testing": "Tested on StarFive VisionFive 2. Verified GPIO functionality remains correct with dynamic allocation. Confirmed no deprecation warnings during boot.",
       "links": [
         {

@@ -344,7 +344,7 @@
 
         <div class="intro" id="intro">
             Mainline Linux kernel contributor focused on RISC-V architecture support, device drivers, and system correctness. 
-            Work primarily involves fixing memory safety issues, runtime PM correctness, and modernizing drivers to follow current kernel guidelines.
+            Work primarily involves fixing memory safety issues, locking and runtime PM correctness, and modernizing drivers to follow current kernel guidelines.
         </div>
 
         <div class="stats" id="stats">
@@ -413,11 +413,13 @@
 
             // Update stats
             const mergedCount = sortedPatches.filter(p => p.status === 'Merged').length;
+            const acceptedCount = sortedPatches.filter(p => p.status === 'Accepted').length;
             const totalCount = sortedPatches.length;
             const cvePatches = sortedPatches.filter(p => p.cve);
 
             document.getElementById('stats').innerHTML = `
                 <div class="stat"><strong>${mergedCount}</strong> patches merged to mainline</div>
+                ${acceptedCount ? `<div class="stat"><strong>${acceptedCount}</strong> accepted, queued for mainline</div>` : ''}
                 <div class="stat"><strong>${totalCount}</strong> total contributions</div>
                 ${cvePatches.length ? `<div class="stat"><strong class="stat-cve">${cvePatches.length}</strong> CVE-assigned fixes</div>` : ''}
             `;
@@ -438,9 +440,9 @@
             // Render patches
             const container = document.getElementById('patches-container');
             container.innerHTML = sortedPatches.map(patch => {
-                const statusClass = patch.status === 'Merged' ? 'status-merged' : 'status-submitted';
+                const statusClass = ['Merged', 'Accepted'].includes(patch.status) ? 'status-merged' : 'status-submitted';
                 const formattedDate = new Date(patch.date).toLocaleDateString('en-US', { 
-                    year: 'numeric', month: 'short', day: 'numeric' 
+                    year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC'
                 });
                 
                 return `
